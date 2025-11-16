@@ -9,7 +9,7 @@ from google import genai
 from google.genai import types
 
 
-API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyDVXezAd80w5fRCe67fLU7ydb_IWk4xcU8")
+API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 
 app = Flask(__name__) 
