@@ -114,8 +114,8 @@ export default function App() {
     if (isLoading) {
       return (
         <div>
-          <p>Analyzing image with Gemini...</p>
-          <p>Sending image to Python server for processing.</p>
+          <p>Analyzing image...</p>
+          <p>Sending image to server for processing.</p>
         </div>
       );
     }
@@ -188,7 +188,7 @@ export default function App() {
   if (currentView === 'confirm') {
     return (
       <div className="mobileContainer">
-        <div className="imageScreen">
+        <div className="confirmScreen">
           <CheckCircle className="checkIcon" width={150} height={150} />
           <h2 className="confirmTitle">
             Your medication has been added to your calendar!
