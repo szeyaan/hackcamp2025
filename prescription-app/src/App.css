@@ -143,3 +143,7 @@ z-index: 10;
 border: none;
 cursor: pointer;
 }
+
+.uploadedImage {
+width: 20%;
+}
