@@ -10,7 +10,7 @@ from google.genai import types
 # IMPORTANT: Best practice is to set your API key as an environment variable (GEMINI_API_KEY).
 # If you must hardcode it for testing, replace the placeholder below.
 # API_KEY = "AIzaSy..." 
-API_KEY = os.getenv("GEMINI_API_KEY", "")
+API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyDVXezAd80w5fRCe67fLU7ydb_IWk4xcU8")
 
 # Define your image paths here. The script will accept 1, 2, or 3 paths.
 # You MUST update these paths to point to your local images (e.g., vial51.jpg, vial52.jpg).
