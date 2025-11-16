@@ -2,35 +2,33 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import './App.css';
 import { Upload, Image, Info, FileText, Camera } from 'lucide-react';
 
-const mockImageData = {
-  'Object Detected': 'Blue Jay (Cyanocitta cristata)',
-  'Confidence Score': '98.5%',
-  'Dominant Color': 'Sky Blue',
-  'Location Tag': 'Forest Canopy',
-  'Resolution': '1920 x 1080',
-  'File Size': '3.2 MB',
-  'Exif Data Present': 'Yes',
-};
+const initialImageInfo = {}; 
 
-// Main Camera Capture Component
 export default function App() {
-  // State to control the view: 'splash' or 'camera'
-  const [currentView, setCurrentView] = useState('splash'); 
-  // State to hold the captured image's data URL (Base64 string)
-  const [photo, setPhoto] = useState(null);
-  // State for status messages (e.g., "Camera Active," "Error")
-  const [message, setMessage] = useState('');
-  // State to hold the actual MediaStream object
-  const [stream, setStream] = useState(null);
-
   const [imageFile, setImageFile] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
-
-    const [imageInfo, setImageInfo] = useState(mockImageData); 
+  const [currentView, setCurrentView] = useState('splash'); 
+  const [message, setMessage] = useState('');
   
-  // Refs to connect the logic to the DOM elements
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
+  // New state variables for API communication
+  const [imageInfo, setImageInfo] = useState(initialImageInfo); 
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState(null);
+  
+  const labelMap = {
+    'medication_name': 'Medication Name',
+    'dosage_strength': 'Dosage / Strength',
+    'directions': 'Directions for Use',
+  };
+
+  const navigateToSplash = () => {
+    setCurrentView('splash');
+    setImageFile(null);
+    setImagePreviewUrl(null);
+    setImageInfo({});
+    setApiError(null);
+    setMessage('');
+  };
 
   // --- CAMERA CONTROL FUNCTIONS ---
 
@@ -109,33 +107,89 @@ export default function App() {
   //   stopCamera(); 
   // };
 
-  const handleImageUpload = (event) => {
+    const handleImageUpload = async (event) => {
     const file = event.target.files[0];
-    if (file && file.type.startsWith('image/')) {
-      setImageFile(file);
-      
-      // Create a local URL for image preview
-      const url = URL.createObjectURL(file);
-      setImagePreviewUrl(url);
-      
-      // Transition to the main info view upon successful upload
-      setCurrentView('info');
-      setMessage('');
-      
-      // In a real application, you would send 'file' to your Python backend here
-      // and then update the 'imageInfo' state with the response data.
-      console.log('File selected:', file.name);
-      
-      // Reset mock data to simulate analysis results (optional)
-      setImageInfo(mockImageData); 
-
-    } else {
+    if (!file || !file.type.startsWith('image/')) {
       setImageFile(null);
       setImagePreviewUrl(null);
       setMessage('Please upload a valid image file.');
       console.error("Please upload a valid image file.");
+      return;
+    }
+
+    // 1. Reset/Prepare UI state for new analysis
+    setApiError(null);
+    setIsLoading(true);
+    setCurrentView('info');
+    setImageInfo({});
+    setMessage('');
+
+    // Setup file preview
+    setImageFile(file);
+    // Use URL.createObjectURL for local preview
+    const url = URL.createObjectURL(file); 
+    setImagePreviewUrl(url);
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const API_ENDPOINT = 'http://127.0.0.1:5000/api/analyze'; 
+      
+      const response = await fetch(API_ENDPOINT, { 
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        // If the server responded with an error status (e.g., 400, 500, 403)
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP Error: ${response.status} ${response.statusText}. Check if Python server is running.`);
+      }
+      
+      const analysisData = await response.json(); 
+      
+      setImageInfo(analysisData);
+
+    } catch (error) {
+      console.error('API Error:', error);
+      // Display the error message from the Python server or the generic connection error
+      setApiError(error.message || 'Could not connect to Python server at http://127.0.0.1:5000.');
+      setImageInfo({}); // Clear info on error
+    } finally {
+      setIsLoading(false);
+      // Clean up the object URL
+      if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
     }
   };
+
+  // const handleImageUpload = (event) => {
+  //   const file = event.target.files[0];
+  //   if (file && file.type.startsWith('image/')) {
+  //     setImageFile(file);
+      
+  //     // Create a local URL for image preview
+  //     const url = URL.createObjectURL(file);
+  //     setImagePreviewUrl(url);
+      
+  //     // Transition to the main info view upon successful upload
+  //     setCurrentView('info');
+  //     setMessage('');
+      
+  //     // In a real application, you would send 'file' to your Python backend here
+  //     // and then update the 'imageInfo' state with the response data.
+  //     console.log('File selected:', file.name);
+      
+  //     // Reset mock data to simulate analysis results (optional)
+  //     setImageInfo(mockImageData); 
+
+  //   } else {
+  //     setImageFile(null);
+  //     setImagePreviewUrl(null);
+  //     setMessage('Please upload a valid image file.');
+  //     console.error("Please upload a valid image file.");
+  //   }
+  // };
 
   const InformationRow = ({ label, value }) => (
     <div className="flex justify-between items-center py-3 px-4 border-b border-gray-100 last:border-b-0">
@@ -149,21 +203,53 @@ export default function App() {
     </div>
   );
 
-  const InfoPanel = useMemo(() => (
-    <div className="w-full bg-white shadow-xl rounded-xl overflow-hidden mt-8 transition-all duration-300">
-      <div className="p-4 bg-indigo-500/10 border-b border-indigo-200">
-        <h2 className="flex items-center text-lg font-bold text-indigo-800">
-          <FileText className="w-5 h-5 mr-2" />
-          Analysis Results
-        </h2>
+  const InfoPanel = useMemo(() => {
+    if (apiError) {
+      return (
+        <div className="mt-8 p-6 bg-red-100 border border-red-400 text-red-700 rounded-xl text-center shadow-lg">
+          <p className="font-bold">Connection/Analysis Error</p>
+          <p className="text-sm mt-1">{apiError}</p>
+        </div>
+      );
+    }
+    
+    if (isLoading) {
+      return (
+        <div className="w-full bg-white shadow-xl rounded-xl mt-8 p-12 text-center text-indigo-600 transition-all duration-300">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-4 border-b-4 border-indigo-500 mx-auto mb-3"></div>
+          <p className="font-semibold">Analyzing image with Gemini...</p>
+          <p className="text-sm text-gray-500">Sending image to Python server for processing.</p>
+        </div>
+      );
+    }
+    
+    // Only render the panel if there is information to show
+    if (Object.keys(imageInfo).length === 0) {
+        return null;
+    }
+
+    return (
+      <div className="w-full bg-white shadow-xl rounded-xl overflow-hidden mt-8 transition-all duration-300">
+        <div className="p-4 bg-indigo-500/10 border-b border-indigo-200">
+          <h2 className="flex items-center text-lg font-bold text-indigo-800">
+            <FileText className="w-5 h-5 mr-2" />
+            MediScan Analysis Results
+          </h2>
+        </div>
+        <div className="divide-y divide-gray-100">
+          {/* Mapping the data using the structured keys from your schema */}
+          {Object.entries(imageInfo).map(([key, value]) => (
+            <InformationRow 
+              key={key} 
+              // Use the user-friendly label from the map, or the key itself as a fallback
+              label={labelMap[key] || key} 
+              value={value} 
+            />
+          ))}
+        </div>
       </div>
-      <div className="divide-y divide-gray-100">
-        {Object.entries(imageInfo).map(([key, value]) => (
-          <InformationRow key={key} label={key} value={value} />
-        ))}
-      </div>
-    </div>
-  ), [imageInfo]);
+    );
+  }, [imageInfo, isLoading, apiError]);
 
 
   // --- RENDER LOGIC ---
@@ -257,7 +343,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* 2. Rows of Information */}
         {imagePreviewUrl && (
           <div className="pb-8">
             {InfoPanel}
