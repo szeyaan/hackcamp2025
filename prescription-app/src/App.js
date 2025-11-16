@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import './App.css';
-import { Upload, Image, Info, FileText, Camera } from 'lucide-react';
+import { Upload, FileText, CheckCircle } from 'lucide-react';
 
 const initialImageInfo = {}; 
 
@@ -30,82 +30,9 @@ export default function App() {
     setMessage('');
   };
 
-  // --- CAMERA CONTROL FUNCTIONS ---
-
-  // const stopCamera = () => {
-  //   if (stream) {
-  //     stream.getTracks().forEach(track => track.stop());
-  //     setStream(null);
-  //     setMessage('Camera stopped.');
-  //   }
-  // };
-
-  // const startCamera = async () => {
-  //   // 1. Stop any existing stream before starting a new one
-  //   stopCamera(); 
-  //   setMessage('Requesting camera access...');
-  //   setPhoto(null); // Clear previous photo
-
-  //   try {
-  //     // Request access to the user's video device
-  //     const mediaStream = await navigator.mediaDevices.getUserMedia({
-  //       video: { 
-  //         width: 320, 
-  //         height: 240,
-  //         facingMode: "environment" // Prefer back camera for "scanning"
-  //       },
-  //     });
-
-  //     // Assign the stream to the video element and start playing
-  //     if (videoRef.current) {
-  //       videoRef.current.srcObject = mediaStream;
-  //       videoRef.current.play();
-  //       setMessage('Camera active. Ready to scan.');
-  //       setStream(mediaStream);
-  //       setCurrentView('camera'); // Switch to camera view on success
-  //     }
-  //   } catch (err) {
-  //     console.error("Error accessing camera: ", err);
-  //     setMessage(`ERROR: Could not access camera. Please check permissions. (${err.name}). Returning to splash.`);
-  //     setCurrentView('splash'); // Return to splash on failure
-  //   }
-  // };
-
-  // // Cleanup: Stop camera when the component is unmounted or view changes
-  // useEffect(() => {
-  //   return () => {
-  //     stopCamera();
-  //   };
-  // }, []);
-
-
-  // // Capture the current frame from the video feed
-  // const takePhoto = () => {
-  //   if (!videoRef.current || !canvasRef.current || !stream) {
-  //     setMessage("Camera not running or elements not ready.");
-  //     return;
-  //   }
-
-  //   const video = videoRef.current;
-  //   const canvas = canvasRef.current;
-    
-  //   // Set canvas dimensions to match the video frame size
-  //   canvas.width = video.videoWidth;
-  //   canvas.height = video.videoHeight;
-
-  //   const context = canvas.getContext('2d');
-    
-  //   // Draw the current video frame onto the canvas
-  //   context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-  //   // Get the image data URL (Base64) from the canvas
-  //   const image = canvas.toDataURL('image/png');
-  //   setPhoto(image);
-  //   setMessage('Photo captured successfully! Ready for scanning logic.');
-    
-  //   // Optional: Stop the camera after taking the photo
-  //   stopCamera(); 
-  // };
+  const handleConfirm = () => {
+    setCurrentView('confirm');
+  };
 
     const handleImageUpload = async (event) => {
     const file = event.target.files[0];
@@ -163,34 +90,6 @@ export default function App() {
     }
   };
 
-  // const handleImageUpload = (event) => {
-  //   const file = event.target.files[0];
-  //   if (file && file.type.startsWith('image/')) {
-  //     setImageFile(file);
-      
-  //     // Create a local URL for image preview
-  //     const url = URL.createObjectURL(file);
-  //     setImagePreviewUrl(url);
-      
-  //     // Transition to the main info view upon successful upload
-  //     setCurrentView('info');
-  //     setMessage('');
-      
-  //     // In a real application, you would send 'file' to your Python backend here
-  //     // and then update the 'imageInfo' state with the response data.
-  //     console.log('File selected:', file.name);
-      
-  //     // Reset mock data to simulate analysis results (optional)
-  //     setImageInfo(mockImageData); 
-
-  //   } else {
-  //     setImageFile(null);
-  //     setImagePreviewUrl(null);
-  //     setMessage('Please upload a valid image file.');
-  //     console.error("Please upload a valid image file.");
-  //   }
-  // };
-
   const InformationRow = ({ label, value }) => (
     <div className="mb-4">
       <div className="informationLabel">
@@ -205,20 +104,18 @@ export default function App() {
   const InfoPanel = useMemo(() => {
     if (apiError) {
       return (
-        <div className="mt-8 p-6 bg-red-100 border border-red-400 text-red-700 rounded-xl text-center shadow-lg">
-          <p className="font-bold">Connection/Analysis Error</p>
-          <p className="text-sm mt-1">{apiError}</p>
+        <div>
+          <p>Connection/Analysis Error</p>
+          <p>{apiError}</p>
         </div>
       );
     }
     
     if (isLoading) {
-      // Used text-gray-700 as requested (close to #222)
       return (
-        <div className="w-full bg-white shadow-xl rounded-xl mt-8 p-12 text-center text-gray-900 transition-all duration-300">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-4 border-b-4 border-indigo-500 mx-auto mb-3"></div>
-          <p className="font-semibold text-gray-900">Analyzing image with Gemini...</p>
-          <p className="text-sm text-gray-700">Sending image to Python server for processing.</p>
+        <div>
+          <p>Analyzing image with Gemini...</p>
+          <p>Sending image to Python server for processing.</p>
         </div>
       );
     }
@@ -229,19 +126,17 @@ export default function App() {
     }
 
     return (
-      <div className="w-full bg-white shadow-xl rounded-xl overflow-hidden mt-8 transition-all duration-300">
-        <div className="p-4 bg-indigo-500/10 border-b border-indigo-200">
-          <h2 className="flex items-center text-lg font-bold text-gray-900">
-            <FileText className="w-5 h-5 mr-2 text-gray-900" />
+      <div>
+        <div>
+          <h2>
+            <FileText/>
             Pillender Analysis Results
           </h2>
         </div>
-        <div className="divide-y divide-gray-100">
-          {/* Mapping the data using the structured keys from your schema */}
+        <div>
           {Object.entries(imageInfo).map(([key, value]) => (
             <InformationRow 
               key={key} 
-              // Use the user-friendly label from the map, or the key itself as a fallback
               label={labelMap[key] || key} 
               value={value} 
             />
@@ -268,17 +163,17 @@ export default function App() {
           >
             Take Photo
           </button>
-        <div className='w-full max-w-xs'>
+          <button className="splashButton" onClick={() => document.getElementById('image-upload').click()}>Upload an Image</button>
+        <div className="hidden">
           <label 
-            htmlFor="splash-image-upload" 
-            className="cursor-pointer inline-block w-full py-4 px-6 text-indigo-200 border-2 border-indigo-200 font-medium text-lg rounded-full hover:bg-indigo-700 transition-all duration-200 flex items-center justify-center"
+            htmlFor="image-upload" 
           >
-            <Upload className="w-5 h-5 mr-3" />
-            Select from Gallery
+            <Upload />
+            {imageFile ? 'Change Image' : 'Upload Image'}
           </label>
-          <input 
-            id="splash-image-upload"
-            type="file" 
+          <input
+            id="image-upload"
+            type="file"
             accept="image/*"
             onChange={handleImageUpload}
             className="sr-only"
@@ -290,11 +185,29 @@ export default function App() {
     );
   }
 
-  // RENDER CAMERA VIEW
+  if (currentView === 'confirm') {
+    return (
+      <div className="mobileContainer">
+        <div className="imageScreen">
+          <CheckCircle className="checkIcon" width={150} height={150} />
+          <h2 className="confirmTitle">
+            Your medication has been added to your calendar!
+          </h2>
+          <button 
+            onClick={navigateToSplash} 
+            className="splashButton"
+          >
+            Go Back to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mobileContainer">
       <div className="imageScreen">
-        <div className="bg-white p-6 shadow-2xl rounded-xl border border-gray-100">
+        <div>
         <div className='imageInstruction'>
           <h2 className='imageTitle'>
             All photos analyzed. Edit by clicking on box if needed.
@@ -311,9 +224,9 @@ export default function App() {
               />
             ) : (
               // Placeholder for upload
-              <div className="flex flex-col items-center justify-center h-full text-indigo-600">
-                <Upload className="w-10 h-10 mb-2" />
-                <span className="text-lg font-medium">Select an image to analyze</span>
+              <div>
+                <Upload />
+                <span>Select an image to analyze</span>
               </div>
             )}
           </div>
@@ -327,7 +240,7 @@ export default function App() {
 
         <div className="buttonRow">
           <button className="splashButton" onClick={() => document.getElementById('image-upload').click()}>Retake</button>
-          <button className="splashButton">Confirm</button>
+          <button className="splashButton" onClick={handleConfirm}>Confirm</button>
         </div>
 
         <div className="hidden">
